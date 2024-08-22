@@ -11,8 +11,9 @@ from research_paper_parser.metrics import (
 
 def evaluate_direct_structured_outputs(
     project_name: str = "research_paper_parser",
-    max_evaluation_samples: int = 50,
+    max_evaluation_samples: int = 30,
     openai_model="gpt-4o",
+    openai_model_for_extraction: str = "gpt-4o-mini",
     max_retries: int = 5,
     seed: int = 42,
     evaluation_name: str = "direct_structured_outputs",
@@ -27,7 +28,10 @@ def evaluate_direct_structured_outputs(
         .rows[:max_evaluation_samples]
     )
     model = ResearchPaperReaderModel(
-        openai_model=openai_model, max_retries=max_retries, seed=seed
+        openai_model=openai_model,
+        openai_model_for_extraction=openai_model_for_extraction,
+        max_retries=max_retries,
+        seed=seed,
     )
     evaluation = weave.Evaluation(
         name=evaluation_name,
