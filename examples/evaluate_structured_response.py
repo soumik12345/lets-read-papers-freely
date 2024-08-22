@@ -1,6 +1,5 @@
 import asyncio
 import fire
-import functools
 import weave
 from research_paper_parser import ResearchPaperReaderModel, ResearchPaperReadingMode
 from research_paper_parser.metrics import (
@@ -27,8 +26,14 @@ def evaluate_direct_structured_outputs(
         .get()
         .rows[:max_evaluation_samples]
     )
+    reading_mode = (
+        ResearchPaperReadingMode.DIRECT_STRUCTURED_RESPONSE
+        if evaluate_direct_structured_response
+        else ResearchPaperReadingMode.NL2STRUCTURED_RESPONSE
+    )
     model = ResearchPaperReaderModel(
         openai_model=openai_model,
+        reading_mode=reading_mode,
         openai_model_for_extraction=openai_model_for_extraction,
         max_retries=max_retries,
         seed=seed,
@@ -38,14 +43,7 @@ def evaluate_direct_structured_outputs(
         dataset=dataset,
         scorers=[extraction_numeracy, method_prediction_accuracy_score],
     )
-    reading_mode = (
-        ResearchPaperReadingMode.DIRECT_STRUCTURED_RESPONSE
-        if evaluate_direct_structured_response
-        else ResearchPaperReadingMode.NL2STRUCTURED_RESPONSE
-    )
-    asyncio.run(
-        evaluation.evaluate(functools.partial(model.predict, reading_mode=reading_mode))
-    )
+    asyncio.run(evaluation.evaluate(model))
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ class ResearchPaperReadingMode(Enum):
 
 class ResearchPaperReaderModel(weave.Model):
     openai_model: str
+    reading_mode: ResearchPaperReadingMode
     openai_model_for_extraction: Optional[str] = "gpt-4o"
     max_retries: int = 5
     seed: int = 42
@@ -31,6 +32,7 @@ class ResearchPaperReaderModel(weave.Model):
     def __init__(
         self,
         openai_model: str,
+        reading_mode: ResearchPaperReadingMode,
         openai_model_for_extraction: Optional[str] = "gpt-4o",
         max_retries: int = 5,
         seed: int = 42,
@@ -38,6 +40,7 @@ class ResearchPaperReaderModel(weave.Model):
     ):
         super().__init__(
             openai_model=openai_model,
+            reading_mode=reading_mode,
             openai_model_for_extraction=openai_model_for_extraction,
             max_retries=max_retries,
             seed=seed,
@@ -156,12 +159,10 @@ You are responsible for extracting the following information from the summary of
         )
 
     @weave.op()
-    def predict(
-        self, url_pdf: str, reading_mode: ResearchPaperReadingMode
-    ) -> Optional[Union[PaperInfo, str]]:
+    def predict(self, url_pdf: str) -> Optional[Union[PaperInfo, str]]:
         md_text = self.get_markdown_from_arxiv(url_pdf)
-        if reading_mode == ResearchPaperReadingMode.DIRECT_STRUCTURED_RESPONSE:
+        if self.reading_mode == ResearchPaperReadingMode.DIRECT_STRUCTURED_RESPONSE:
             return self.get_direct_structured_response(md_text=md_text)
-        elif reading_mode == ResearchPaperReadingMode.NL2STRUCTURED_RESPONSE:
+        elif self.reading_mode == ResearchPaperReadingMode.NL2STRUCTURED_RESPONSE:
             return self.get_two_staged_structured_response(md_text=md_text)
         return self.get_unstructured_response(md_text=md_text)
