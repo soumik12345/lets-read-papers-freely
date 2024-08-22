@@ -15,6 +15,7 @@ def evaluate_direct_structured_outputs(
     openai_model="gpt-4o",
     max_retries: int = 5,
     seed: int = 42,
+    evaluation_name: str = "direct_structured_outputs",
     evaluate_direct_structured_response: bool = True,
 ):
     weave.init(project_name=project_name)
@@ -29,7 +30,7 @@ def evaluate_direct_structured_outputs(
         openai_model=openai_model, max_retries=max_retries, seed=seed
     )
     evaluation = weave.Evaluation(
-        name="direct_structured_outputs",
+        name=evaluation_name,
         dataset=dataset,
         scorers=[extraction_numeracy, method_prediction_accuracy_score],
     )
