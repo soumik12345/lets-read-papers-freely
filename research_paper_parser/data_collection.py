@@ -1,31 +1,35 @@
 import json
 import math
 from tea_client.errors import ValidationError
-from typing import List
+from typing import List, TYPE_CHECKING
 
-import fire
 import weave
-from paperswithcode import PapersWithCodeClient
-from paperswithcode.models import Paper
 from tqdm.auto import tqdm
+
+if TYPE_CHECKING:
+    from paperswithcode.models import Paper
 
 
 class PapersWithCodeDatasetGenerator:
 
     def __init__(self, tasks: List[str]):
+        from paperswithcode import PapersWithCodeClient
+
         self.tasks = tasks
         self.pwc_client = PapersWithCodeClient()
 
-    def fetch_papers(self, task_id: str) -> List[Paper]:
+    def fetch_papers(self, task_id: str) -> List["Paper"]:
         papers_count = self.pwc_client.task_paper_list(task_id=task_id).count
         paper_results = []
         for idx in tqdm(
-                range(math.ceil(papers_count / 50)),
-                desc=f"Fetching papers for {task_id}",
-                leave=False,
+            range(math.ceil(papers_count / 50)),
+            desc=f"Fetching papers for {task_id}",
+            leave=False,
         ):
             try:
-                paper_results.append(self.pwc_client.task_paper_list(task_id=task_id, page=idx))
+                paper_results.append(
+                    self.pwc_client.task_paper_list(task_id=task_id, page=idx)
+                )
             except Exception as e:
                 pass
         papers = []
@@ -33,9 +37,10 @@ class PapersWithCodeDatasetGenerator:
             papers += paper_results.results
         return papers
 
-    def fetch_and_publish_data(self, project_name: str, entity_name: str):
+    def fetch_and_publish_data(
+        self, project_name: str, entity_name: str, dataset_name: str
+    ):
         weave.init(project_name=f"{entity_name}/{project_name}")
-        pwc_client = PapersWithCodeClient()
         papers_list = []
         for task in tqdm(self.tasks, desc=f"Fetching data for Task"):
             papers = self.fetch_papers(task_id=task)
@@ -43,37 +48,43 @@ class PapersWithCodeDatasetGenerator:
             successful_counts = 0
             for paper in pbar:
                 try:
-                    repository_count = pwc_client.paper_repository_list(
+                    repository_count = self.pwc_client.paper_repository_list(
                         paper_id=paper.id
                     ).count
                 except ValidationError:
                     repository_count = 0
                 try:
-                    method_count = pwc_client.paper_method_list(paper_id=paper.id).count
+                    method_count = self.pwc_client.paper_method_list(
+                        paper_id=paper.id
+                    ).count
                 except ValidationError:
                     method_count = 0
                 try:
-                    result_count = pwc_client.paper_result_list(paper_id=paper.id).count
+                    result_count = self.pwc_client.paper_result_list(
+                        paper_id=paper.id
+                    ).count
                 except ValidationError:
                     result_count = 0
                 if result_count > 0 and method_count > 0:
                     successful_counts += 1
-                    pbar.set_description(f"Fetching data for {task} ({successful_counts})")
+                    pbar.set_description(
+                        f"Fetching data for {task} ({successful_counts})"
+                    )
                     repositories = [
                         repo_result.url
-                        for repo_result in pwc_client.paper_repository_list(
+                        for repo_result in self.pwc_client.paper_repository_list(
                             paper_id=paper.id, items_per_page=repository_count
                         ).results
                     ]
                     methods = [
                         json.loads(method_result.model_dump_json())
-                        for method_result in pwc_client.paper_method_list(
+                        for method_result in self.pwc_client.paper_method_list(
                             paper_id=paper.id, items_per_page=method_count
                         ).results
                     ]
                     results = [
                         json.loads(result.model_dump_json())
-                        for result in pwc_client.paper_result_list(
+                        for result in self.pwc_client.paper_result_list(
                             paper_id=paper.id, items_per_page=result_count
                         ).results
                     ]
@@ -92,4 +103,4 @@ class PapersWithCodeDatasetGenerator:
                         }
                     )
             break
-        weave.publish(weave.Dataset(rows=papers_list, name="cv-papers"))
+        weave.publish(weave.Dataset(rows=papers_list, name=dataset_name))
