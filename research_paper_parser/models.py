@@ -1,7 +1,7 @@
 import requests
 from enum import Enum
 from io import BytesIO
-from typing import Optional
+from typing import Optional, Union
 
 import instructor
 import pymupdf
@@ -21,7 +21,7 @@ class ResearchPaperReadingMode(Enum):
 
 class ResearchPaperReaderModel(weave.Model):
     openai_model: str
-    openai_model_for_extraction: Optional[str] = "gpt-4-o"
+    openai_model_for_extraction: Optional[str] = "gpt-4o"
     max_retries: int = 5
     seed: int = 42
     system_prompt: Optional[str] = None
@@ -31,7 +31,7 @@ class ResearchPaperReaderModel(weave.Model):
     def __init__(
         self,
         openai_model: str,
-        openai_model_for_extraction: Optional[str] = "gpt-4-o",
+        openai_model_for_extraction: Optional[str] = "gpt-4o",
         max_retries: int = 5,
         seed: int = 42,
         system_prompt: Optional[str] = None,
@@ -158,7 +158,7 @@ You are responsible for extracting the following information from the summary of
     @weave.op()
     def predict(
         self, url_pdf: str, reading_mode: ResearchPaperReadingMode
-    ) -> Optional[PaperInfo, str]:
+    ) -> Optional[Union[PaperInfo, str]]:
         md_text = self.get_markdown_from_arxiv(url_pdf)
         if reading_mode == ResearchPaperReadingMode.DIRECT_STRUCTURED_RESPONSE:
             return self.get_direct_structured_response(md_text=md_text)
